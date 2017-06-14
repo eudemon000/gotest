@@ -1,0 +1,34 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;gotest&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../GoStudy" />
+      <root url="file://$PROJECT_DIR$/../.idea" />
+      <root url="file://$PROJECT_DIR$/../cgss" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../pholcus_pkg" />
+      <root url="file://$PROJECT_DIR$/../ImgSpider" />
+      <root url="file://$PROJECT_DIR$/../MyStudySpider" />
+      <root url="file://$PROJECT_DIR$/../SpiderTest" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../GoStuduy" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../GoStudy" />
+      <root url="file://$PROJECT_DIR$/../.idea" />
+      <root url="file://$PROJECT_DIR$/../cgss" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../pholcus_pkg" />
+      <root url="file://$PROJECT_DIR$/../ImgSpider" />
+      <root url="file://$PROJECT_DIR$/../MyStudySpider" />
+      <root url="file://$PROJECT_DIR$/../SpiderTest" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../GoStuduy" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>
