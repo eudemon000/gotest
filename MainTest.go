@@ -16,7 +16,14 @@ import (
 	"github.com/henrylee2cn/pholcus/common/mahonia"
 	"bytes"
 	myHttp "gotest/src/http"
+	dis "gotest/src/dis"
+	"regexp"
 )
+
+//用来实现DataFormat接口
+type InitImp struct {
+
+}
 
 
 var urls = make([]string, 0)
@@ -25,6 +32,8 @@ var currentUrl = ""
 
 var manage *queen.MsgQueenManager
 
+var initData dis.InitData
+
 var handler = queen.MessageHandler(func(data interface{}) {
 	fmt.Println("这是消息：", data)
 	start(data.(string))
@@ -32,12 +41,17 @@ var handler = queen.MessageHandler(func(data interface{}) {
 
 var mutexLock sync.Mutex
 
+var cUrl string
+
 func main() {
 	accept := runtime.NumCPU()
 	runtime.GOMAXPROCS(accept)
-
-	manage = queen.NewmsgQueenManager(10, 10, handler)
-	manage.PushData("http://www.99.com.cn")
+	initImp := new(InitImp)
+	initData = dis.InitData{initImp, handler}
+	dis.NewDispathcer(&initData)
+	initData.Push("http://www.99.com.cn")
+	//manage = queen.NewmsgQueenManager(10, 10, handler)
+	//manage.PushData("http://www.99.com.cn")
 	//manage.PushData("http://www.qq.com")
 	var c chan int
 	c <- 1
@@ -47,6 +61,40 @@ func main() {
 		go start(a, item)
 	}*/
 
+}
+
+//实现DataFormat的方法
+func (initImp *InitImp)Format(str string) (result string, ok bool) {
+	fmt.Println("接口方法调用", str)
+	//首先判断是不是是不是javascript，#或*开头的,如果是代表不是合法URL
+	ok, err := regexp.MatchString("^javascript|^#|^\\*", str)
+	if err !=nil {
+		fmt.Println(err)
+		return "", false
+	}
+	if ok {
+		return "", false
+	}
+
+	//判断是不是http开头的，http和https均可判断
+	ok, err = regexp.MatchString("^http", str)
+	if err != nil {
+		fmt.Println(err)
+		return "", false
+	}
+	if ok {
+		return str, true
+	}
+
+	//还要一种是相对路径，分两种情况，1、"/"开头；2、非"/"开头
+	ok, err = regexp.MatchString("^/{1}[a-zA-Z0-9]{1,}?", str)
+	if ok {
+		//需要找路径根
+		strs := strings.Split(cUrl, "/")
+
+		return strs[0], false
+	}
+	return str, true
 }
 
 func start(url string) {
@@ -59,11 +107,14 @@ func start(url string) {
 	3、
 	 */
 
+
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	cUrl = doc.Url.Path
 
 	//首先获取页面的编码格式，编码格式一般在head的meta中
 	var webCharset string
@@ -105,70 +156,6 @@ func start(url string) {
 		}
 	}
 
-
-
-	/*
-
-
-
-	//先获取所有需要爬取的URL放入到数组中，待爬取
-
-
-
-
-
-
-
-	document := doc.Find("html")
-	var webCharset string
-
-	urls := new(sqlConn.Urls)
-
-	*//*defer func() {
-		if rErr := recover(); rErr != nil {
-			var b myHttp.Body
-			b = myHttp.Body{urls.Url, urls.Md5, urls.Content}
-			fmt.Println(b)
-			//sendSearch(b)
-		}
-	}()*//*
-
-	document.Each(func(i int, s *goquery.Selection) {
-		aTag := s.Find("a")
-		urlArr = findUrls(aTag)
-
-		metaTag := s.Find("meta")
-		if len(webCharset) <= 0 {
-			webCharset = checkCharset(metaTag)
-		}
-		fmt.Println(webCharset)
-
-		var content string
-		content = checkTag(metaTag, webCharset)
-
-		urls.Url = url
-		urls.Md5, _ = hex.Md5(url)
-		urls.Is_crawl = "NO"
-		urls.Layer = 1
-		urls.Content = content
-		//panic(urls)
-	})
-
-	b := myHttp.Body{urls.Url, urls.Md5, urls.Content}
-	fmt.Println(b)
-	sendSearch(b)
-
-	err1 := sqlConn.Insert(urls)
-	if err1 != nil {
-		fmt.Println(err1)
-	}
-	for index, item := range urlArr {
-		fmt.Println("index=", index, "item=", item)
-		if len(item) > 0 {
-			manage.PushData(item)
-		}
-	}*/
-	//fmt.Println(len(urls))
 }
 
 func formatStr(str, setCharset string) string {
@@ -294,4 +281,6 @@ func findUrls(bodySelect *goquery.Selection) []string {
 func sendSearch(data myHttp.Body) {
 	myHttp.AddElsearch(data)
 }
+
+
 
