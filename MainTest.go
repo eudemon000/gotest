@@ -16,9 +16,14 @@ import (
 	"github.com/henrylee2cn/pholcus/common/mahonia"
 	"bytes"
 	myHttp "gotest/src/http"
-	dis "gotest/src/dis"
+	disPack "gotest/src/dis"
 	"regexp"
 )
+
+type DataFormat interface {
+	//格式化字符串
+	Format(str string) (result string, ok bool)
+}
 
 //用来实现DataFormat接口
 type InitImp struct {
@@ -26,16 +31,18 @@ type InitImp struct {
 }
 
 
+var initDataFormat *InitImp
+
 var urls = make([]string, 0)
 
 var currentUrl = ""
 
 var manage *queen.MsgQueenManager
 
-var initData dis.InitData
+var initData *disPack.InitData
 
 var handler = queen.MessageHandler(func(data interface{}) {
-	fmt.Println("这是消息：", data)
+	//fmt.Println("这是消息：", data)
 	start(data.(string))
 })
 
@@ -46,13 +53,14 @@ var cUrl string
 func main() {
 	accept := runtime.NumCPU()
 	runtime.GOMAXPROCS(accept)
-	initImp := new(InitImp)
-	initData = dis.InitData{initImp, handler}
-	dis.NewDispathcer(&initData)
+	initDataFormat = new(InitImp)
+	initData = new(disPack.InitData)
+	initData.Handler = handler
+	disPack.NewDispathcer(initData)
+	cUrl = "http://www.99.com.cn"
 	initData.Push("http://www.99.com.cn")
-	//manage = queen.NewmsgQueenManager(10, 10, handler)
-	//manage.PushData("http://www.99.com.cn")
-	//manage.PushData("http://www.qq.com")
+	/*manage = queen.NewmsgQueenManager(10, 10, handler)
+	manage.PushData("http://www.99.com.cn")*/
 	var c chan int
 	c <- 1
 	/*urls = append(urls, "http://www.99.com.cn")
@@ -65,7 +73,7 @@ func main() {
 
 //实现DataFormat的方法
 func (initImp *InitImp)Format(str string) (result string, ok bool) {
-	fmt.Println("接口方法调用", str)
+	//fmt.Println("接口方法调用", str)
 	//首先判断是不是是不是javascript，#或*开头的,如果是代表不是合法URL
 	ok, err := regexp.MatchString("^javascript|^#|^\\*", str)
 	if err !=nil {
@@ -91,10 +99,21 @@ func (initImp *InitImp)Format(str string) (result string, ok bool) {
 	if ok {
 		//需要找路径根
 		strs := strings.Split(cUrl, "/")
-
-		return strs[0], false
+		re := strs[0] + "//" + strs[2] + str
+		return re, false
 	}
-	return str, true
+
+	ok, err = regexp.MatchString("[a-zA-Z0-9]{1,}?", str)
+	if err != nil {
+		fmt.Println(err)
+		return "", false
+	}
+	if ok {
+		postion := strings.LastIndex(cUrl, "/")
+		re := cUrl[0:postion] + str
+		return re, true
+	}
+	return "", false
 }
 
 func start(url string) {
@@ -113,9 +132,7 @@ func start(url string) {
 		fmt.Println(err)
 		return
 	}
-
-	cUrl = doc.Url.Path
-
+	cUrl = doc.Url.String()
 	//首先获取页面的编码格式，编码格式一般在head的meta中
 	var webCharset string
 	headTag := doc.Find("head")
@@ -152,7 +169,11 @@ func start(url string) {
 	for _, item := range resultUrl {
 		//fmt.Println(index, item)
 		if len(item) > 0 {
-			manage.PushData(item)
+			//manage.PushData(item)
+			r, ok := initDataFormat.Format(item)
+			if ok {
+				initData.Push(r)
+			}
 		}
 	}
 
@@ -269,8 +290,12 @@ func findUrls(bodySelect *goquery.Selection) []string {
 		tempUrl, ok := node.Attr("href")
 		if ok {
 			//此处暂时判断链接以http开头，未来需要判断相对地址，暂时不做处理
-			if strings.Index(tempUrl, "http") != -1 {
+			/*if strings.Index(tempUrl, "http") != -1 {
 				array = append(array, tempUrl)
+			}*/
+			result, ok := initDataFormat.Format(tempUrl)
+			if ok {
+				array = append(array, result)
 			}
 			//manage.PushData(tempUrl)
 		}
