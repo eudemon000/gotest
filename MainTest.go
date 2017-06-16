@@ -18,6 +18,7 @@ import (
 	myHttp "gotest/src/http"
 	disPack "gotest/src/dis"
 	"regexp"
+	msgLog "gotest/src/logPackage"
 )
 
 type DataFormat interface {
@@ -77,7 +78,7 @@ func (initImp *InitImp)Format(str string) (result string, ok bool) {
 	//首先判断是不是是不是javascript，#或*开头的,如果是代表不是合法URL
 	ok, err := regexp.MatchString("^javascript|^#|^\\*", str)
 	if err !=nil {
-		fmt.Println(err)
+		msgLog.Msg(msgLog.Error, err)
 		return "", false
 	}
 	if ok {
@@ -87,7 +88,7 @@ func (initImp *InitImp)Format(str string) (result string, ok bool) {
 	//判断是不是http开头的，http和https均可判断
 	ok, err = regexp.MatchString("^http", str)
 	if err != nil {
-		fmt.Println(err)
+		msgLog.Msg(msgLog.Error, err)
 		return "", false
 	}
 	if ok {
@@ -105,12 +106,14 @@ func (initImp *InitImp)Format(str string) (result string, ok bool) {
 
 	ok, err = regexp.MatchString("[a-zA-Z0-9]{1,}?", str)
 	if err != nil {
-		fmt.Println(err)
+		msgLog.Msg(msgLog.Error, err)
 		return "", false
 	}
 	if ok {
 		postion := strings.LastIndex(cUrl, "/")
-		re := cUrl[0:postion] + str
+		postion += 1
+		a := cUrl[0:postion]
+		re := a + str
 		return re, true
 	}
 	return "", false
@@ -120,6 +123,7 @@ func start(url string) {
 	if currentUrl == url {
 		return
 	}
+
 	/**
 	1、首先爬去全文取出所有待爬的URL放到数组里
 	2、获取页面编码格式，根据编码格式格式化内容
@@ -129,7 +133,7 @@ func start(url string) {
 
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
-		fmt.Println(err)
+		msgLog.Msg(msgLog.Error, err)
 		return
 	}
 	cUrl = doc.Url.String()
@@ -150,7 +154,7 @@ func start(url string) {
 	urls.Is_crawl = "YES"
 	sqlErr := sqlConn.Insert(urls)
 	if sqlErr != nil {
-		fmt.Println("数据插入失败===》", sqlErr)
+		msgLog.Msg(msgLog.Error, err)
 	} else {
 		if strings.Contains(urls.Content, "肿瘤") {
 			b := myHttp.Body{urls.Url, urls.Md5, urls.Content}
@@ -172,6 +176,7 @@ func start(url string) {
 			//manage.PushData(item)
 			r, ok := initDataFormat.Format(item)
 			if ok {
+				//msgLog.Msg(msgLog.Info, r)
 				initData.Push(r)
 			}
 		}
@@ -187,7 +192,6 @@ func formatStr(str, setCharset string) string {
 		//result := Decode(str, "gbk")
 		return result
 	} else if strings.Contains(setCharset, "gb2312") {
-		fmt.Println("这是gb2312页面")
 		de := mahonia.NewDecoder("gb2312")
 		result := de.ConvertString(str)
 		//result := Decode(str, "gb2312")
@@ -203,7 +207,8 @@ func checkCharset(sele *goquery.Selection) (webCharset string) {
 	//var webCharset string
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println(err)
+			//fmt.Println(err)
+			msgLog.Msg(msgLog.Error, err)
 		}
 	}()
 	sele.Each(func(i int, m *goquery.Selection) {
