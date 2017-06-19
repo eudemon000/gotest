@@ -57,6 +57,7 @@ func main() {
 	initDataFormat = new(InitImp)
 	initData = new(disPack.InitData)
 	initData.Handler = handler
+	initData.ConUrl = new(sqlConn.DataBasePip)
 	disPack.NewDispathcer(initData)
 	cUrl = "http://www.99.com.cn"
 	initData.Push("http://www.99.com.cn")

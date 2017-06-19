@@ -7,12 +7,13 @@ import (
 )
 
 type msgQueen struct {
-	index   int
-	data    interface{}
-	pre     *msgQueen
-	next    *msgQueen
-	hasData bool
+	index   	int
+	data    	interface{}
+	pre     	*msgQueen
+	next    	*msgQueen
+	hasData 	bool
 }
+
 
 type MessageHandler func(data interface{})
 
@@ -70,6 +71,13 @@ func NewmsgQueenManager(size, readThreadSize int, handler MessageHandler) *MsgQu
 func (mQm *MsgQueenManager) PushData(data interface{}) {
 	mQm.lock.Lock()
 	defer mQm.lock.Unlock()
+
+	/*isExist := continueUrl.CheckData(data)
+	if !isExist {
+		return
+	}*/
+
+
 
 	if mQm.isLock {
 		mQm.mux.Unlock()
