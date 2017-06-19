@@ -42,7 +42,12 @@ var manage *queen.MsgQueenManager
 
 var initData *disPack.InitData
 
-var handler = queen.MessageHandler(func(data interface{}) {
+/*var handler = queen.MessageHandler(func(data interface{}) {
+	//fmt.Println("这是消息：", data)
+	start(data.(string))
+})*/
+
+var handler = disPack.MessageHandler(func(data interface{}) {
 	//fmt.Println("这是消息：", data)
 	start(data.(string))
 })
@@ -56,7 +61,8 @@ func main() {
 	runtime.GOMAXPROCS(accept)
 	initDataFormat = new(InitImp)
 	initData = new(disPack.InitData)
-	initData.Handler = handler
+	//initData.Handler = handler
+	initData.H = handler
 	initData.ConUrl = new(sqlConn.DataBasePip)
 	disPack.NewDispathcer(initData)
 	cUrl = "http://www.99.com.cn"

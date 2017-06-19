@@ -5,6 +5,7 @@ import (
 	_"github.com/go-sql-driver/mysql"
 	"database/sql"
 	msgLog "gotest/src/logPackage"
+	"container/list"
 )
 
 //var db = &sql.DB{}
@@ -117,7 +118,7 @@ func InsertContinue(url string) (ok bool) {
 
 //检查是否存在
 func (pip *DataBasePip)CheckData(data interface{}) bool {
-	rows, err := Db.Query("select * from tbl_tbl_continue_url as c where c.url like ?", data.(string))
+	rows, err := Db.Query("select * from tbl_continue_url as c where c.url like ?", data.(string))
 	if err != nil {
 		msgLog.Msg(msgLog.Error, err)
 		return true
@@ -137,10 +138,10 @@ func (pip *DataBasePip)CheckData(data interface{}) bool {
 	if rows.Next() {
 		err := rows.Scan(scanArgs...)
 		msgLog.CheckErr(err)
-		record := make(map[string]string)
+		record := make(map[string]interface{})
 		for i, col := range values {
 			if col != nil {
-				record[columns[i]] = string(col.([]byte))
+				record[columns[i]] = col
 			}
 		}
 		return true
@@ -153,7 +154,7 @@ func (pip *DataBasePip)CheckData(data interface{}) bool {
 
 //添加到待爬取文件
 func (pip *DataBasePip)PushContinue(data interface{}) bool {
-	result, err := Db.Exec("insert into tbl_tbl_continue_url(url) values()?", data.(string))
+	result, err := Db.Exec("insert into tbl_continue_url(url) values(?)", data.(string))
 	if err != nil {
 		msgLog.Msg(msgLog.Error, err)
 		return false
@@ -169,17 +170,18 @@ func (pip *DataBasePip)PushContinue(data interface{}) bool {
 	return false
 }
 //读取待爬取URL
-func (pip *DataBasePip)PullContinue() interface{} {
-	rows, err := Db.Query("select * from tbl_tbl_continue_url limit 0, 20")
+func (pip *DataBasePip)PullContinue() list.List {
+	resultList := list.List{}
+	rows, err := Db.Query("select * from tbl_continue_url limit 0, 20")
 	defer rows.Close()
 	if err != nil {
 		msgLog.Msg(msgLog.Error, err)
-		return nil
+		return resultList
 	}
 	columns, err := rows.Columns()
 	if err != nil {
 		msgLog.Msg(msgLog.Error, err)
-		return nil
+		return resultList
 	}
 	scanArgs := make([]interface{}, len(columns))
 	values := make([]interface{}, len(columns))
@@ -188,10 +190,10 @@ func (pip *DataBasePip)PullContinue() interface{} {
 	}
 
 	for rows.Next() {
-		err := rows.Scan(scanArgs)
+		err := rows.Scan(scanArgs...)
 		if err != nil {
 			msgLog.Msg(msgLog.Error, err)
-			return nil
+			return resultList
 		}
 		record := make(map[string]string)
 		for i, col := range values {
@@ -199,10 +201,11 @@ func (pip *DataBasePip)PullContinue() interface{} {
 				record[columns[i]] = string(col.([]byte))
 			}
 		}
-		return record
+		//return record
+		resultList.PushBack(record)
 	}
 
-	return nil
+	return resultList
 }
 
 
