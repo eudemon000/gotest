@@ -19,6 +19,7 @@ import (
 	disPack "gotest/src/dis"
 	"regexp"
 	msgLog "gotest/src/logPackage"
+	"container/list"
 )
 
 type DataFormat interface {
@@ -49,7 +50,16 @@ var initData *disPack.InitData
 
 var handler = disPack.MessageHandler(func(data interface{}) {
 	//fmt.Println("这是消息：", data)
-	start(data.(string))
+	temp := data.(list.List)
+	var n *list.Element
+	for e := temp.Front(); e != nil; e = n {
+		//fmt.Println(e.Value.(map[string]string)["url"])
+		n = e.Next()
+		temp.Remove(e)
+		start(e.Value.(map[string]string)["url"])
+	}
+	//start(data)
+	//fmt.Println(data)
 })
 
 var mutexLock sync.Mutex
@@ -66,7 +76,9 @@ func main() {
 	initData.ConUrl = new(sqlConn.DataBasePip)
 	disPack.NewDispathcer(initData)
 	cUrl = "http://www.99.com.cn"
-	initData.Push("http://www.99.com.cn")
+	listData := list.List{}
+	listData.PushBack(cUrl)
+	initData.Push(listData)
 	/*manage = queen.NewmsgQueenManager(10, 10, handler)
 	manage.PushData("http://www.99.com.cn")*/
 	var c chan int
@@ -127,6 +139,7 @@ func (initImp *InitImp)Format(str string) (result string, ok bool) {
 }
 
 func start(url string) {
+	fmt.Println(url)
 	if currentUrl == url {
 		return
 	}
@@ -173,11 +186,12 @@ func start(url string) {
 
 	//获取接下来需要爬取的URL，放放入队列中
 	bodyTag := doc.Find("body")
-	resultUrl := make([]string, 50)
+	var resultUrl list.List
 	bodyTag.Each(func(i int, bodySelect *goquery.Selection) {
 		resultUrl = findUrls(bodySelect)
 	})
-	for _, item := range resultUrl {
+	initData.Push(resultUrl)
+	/*for _, item := range resultUrl {
 		//fmt.Println(index, item)
 		if len(item) > 0 {
 			//manage.PushData(item)
@@ -185,9 +199,10 @@ func start(url string) {
 			if ok {
 				//msgLog.Msg(msgLog.Info, r)
 				initData.Push(r)
+				//fmt.Println(r)
 			}
 		}
-	}
+	}*/
 
 }
 
@@ -295,8 +310,8 @@ func Decode(str, setCharset string) string {
 }
 
 //获取页面上所有的URL
-func findUrls(bodySelect *goquery.Selection) []string {
-	var array []string = make([]string, 50)
+func findUrls(bodySelect *goquery.Selection) list.List {
+	var array list.List = list.List{}
 	aTag := bodySelect.Find("a")
 	aTag.Each(func(index int, node *goquery.Selection) {
 		tempUrl, ok := node.Attr("href")
@@ -307,7 +322,8 @@ func findUrls(bodySelect *goquery.Selection) []string {
 			}*/
 			result, ok := initDataFormat.Format(tempUrl)
 			if ok {
-				array = append(array, result)
+				//array = append(array, result)
+				array.PushBack(result)
 			}
 			//manage.PushData(tempUrl)
 		}

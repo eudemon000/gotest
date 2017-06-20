@@ -5,6 +5,7 @@ import (
 	dataPip "gotest/src/pipeline"
 	"fmt"
 	"container/list"
+	"time"
 )
 
 
@@ -26,40 +27,54 @@ type ContinueUrl interface {
 	PullContinue() list.List
 }
 
-var mainCh chan int = make(chan int)
-
-
 var manage *queen.MsgQueenManager
 
 var continueUrl ContinueUrl
 
 var handler MessageHandler
 
+var ch chan int = make(chan int)
+
+
 func NewDispathcer(init *InitData) {
 	//manage = queen.NewmsgQueenManager(10, 10, init.Handler)
 	continueUrl = init.ConUrl
 	handler = init.H
 	go queryUrl()
-
+	time.Sleep(time.Second)
 }
 
 //待爬取的URL放入表里
-func (init *InitData)Push(str string) {
-	<- mainCh
+func (init *InitData)Push(listData list.List) {
 	//首先检查该URL是否爬取过
-	isExist := dataPip.QueryURL(str)
-	if isExist {
-		return
-	}
+	var n *list.Element
+	for e := listData.Front(); e != nil; e = n {
+		n = e.Next()
+		listData.Remove(e)
 
-	//检查待爬取的表里是否有该URL
-	exist := continueUrl.CheckData(str)
-	if !exist {
-		//放入待爬取的表
-		continueUrl.PushContinue(str)
-		//mainCh <- 1
-	}
+		var str string
+		switch e.Value.(type) {
+		case string:
+			str = e.Value.(string)
+		}
 
+		isExist := dataPip.QueryURL(str)
+		if isExist {
+			//return
+			continue
+		}
+
+		//检查待爬取的表里是否有该URL
+		exist := continueUrl.CheckData(str)
+		if !exist {
+			//放入待爬取的表
+			continueUrl.PushContinue(str)
+		}
+
+	}
+	r := <- ch
+	fmt.Println("ch=", r)
+	//<- mainCh
 	//manage.PushData(str)
 
 }
@@ -67,17 +82,13 @@ func (init *InitData)Push(str string) {
 //从待爬取列表读取URL
 func queryUrl() {
 	for {
-		//a := <- mainCh
+		fmt.Println("loop")
+		//首先阻塞一下，等push被调用后，解除阻塞
+		ch <- 1
 		result := continueUrl.PullContinue()
-		for e := result.Front(); e != nil; e = e.Next() {
-			tempMap := e.Value.(map[string]string)
-			fmt.Println("tempMap=", tempMap["url"])
-			//manage.PushData(tempMap["url"])
-			handler(tempMap["url"])
+		if result.Len() > 0 {
+			go handler(result)
 		}
-		mainCh <- 1
-		fmt.Println("queryUrl")
-
 	}
 }
 
