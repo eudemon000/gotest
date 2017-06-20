@@ -61,6 +61,7 @@ func (init *InitData)Push(listData list.List) {
 		isExist := dataPip.QueryURL(str)
 		if isExist {
 			//return
+			//如果存在，跳出当前循环
 			continue
 		}
 
