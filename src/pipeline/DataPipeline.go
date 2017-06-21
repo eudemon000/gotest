@@ -29,8 +29,9 @@ func init() {
 
 func initDB() {
 	var err error
-	Db, err = sql.Open("mysql", "root:Sanpotel9958!@tcp(192.168.0.215:3306)/sanpotel_search?charset=utf8")
+	//Db, err = sql.Open("mysql", "root:Sanpotel9958!@tcp(192.168.0.215:3306)/sanpotel_search?charset=utf8")
 	//db, err = sql.Open("mysql", "debian-sys-maint:98lq22Jdd0SosgmM@tcp(localhost:3306)/sanpotel_search?charset=utf8")
+	Db, err = sql.Open("mysql", "root:Sanpotel9958@bj@tcp(219.136.249.21:3306)/sanpotel_search?charset=utf8")
 	Db.SetMaxOpenConns(20)
 	msgLog.CheckErr(err)
 }

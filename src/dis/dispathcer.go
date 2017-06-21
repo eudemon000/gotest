@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"container/list"
 	"time"
+	"sync"
 )
 
 
@@ -33,11 +34,22 @@ var continueUrl ContinueUrl
 
 var handler MessageHandler
 
-var ch chan int = make(chan int)
+type myQueue struct {
+	l 	*list.List
+	lock 	*sync.Mutex
+	mux 	*sync.Mutex
+	isLock	bool
+}
+
+var mq *myQueue
 
 
 func NewDispathcer(init *InitData) {
 	//manage = queen.NewmsgQueenManager(10, 10, init.Handler)
+	mq = new(myQueue)
+	mq.l = list.New()
+	mq.lock = new(sync.Mutex)
+	mq.mux = new(sync.Mutex)
 	continueUrl = init.ConUrl
 	handler = init.H
 	go queryUrl()
@@ -47,6 +59,14 @@ func NewDispathcer(init *InitData) {
 //待爬取的URL放入表里
 func (init *InitData)Push(listData list.List) {
 	//首先检查该URL是否爬取过
+	mq.mux.Lock()
+	defer mq.mux.Unlock()
+
+	if mq.isLock {
+		mq.lock.Unlock()
+		mq.isLock = false
+	}
+
 	var n *list.Element
 	for e := listData.Front(); e != nil; e = n {
 		n = e.Next()
@@ -73,8 +93,6 @@ func (init *InitData)Push(listData list.List) {
 		}
 
 	}
-	r := <- ch
-	fmt.Println("ch=", r)
 	//<- mainCh
 	//manage.PushData(str)
 
@@ -84,12 +102,23 @@ func (init *InitData)Push(listData list.List) {
 func queryUrl() {
 	for {
 		fmt.Println("loop")
-		//首先阻塞一下，等push被调用后，解除阻塞
-		ch <- 1
-		result := continueUrl.PullContinue()
-		if result.Len() > 0 {
-			go handler(result)
+		//首先判断队列里是否有
+		if mq.l.Len() > 0 {
+			handler(*mq.l)
+		} else {	//如果没有数据，则解除队列的锁，让其他函数可以向队列写入数据
+			mq.lock.Lock()
+			mq.isLock = true
+			result := continueUrl.PullContinue()
+			mq.l.PushBackList(&result)
 		}
+
+
+
+
+		/*if result.Len() > 0 {
+			handler(result)
+			//manage.PushData(result)
+		}*/
 	}
 }
 

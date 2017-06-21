@@ -71,7 +71,7 @@ func main() {
 	runtime.GOMAXPROCS(accept)
 	initDataFormat = new(InitImp)
 	initData = new(disPack.InitData)
-	//initData.Handler = handler
+	//initData.Handler = handler1
 	initData.H = handler
 	initData.ConUrl = new(sqlConn.DataBasePip)
 	disPack.NewDispathcer(initData)
@@ -111,6 +111,10 @@ func (initImp *InitImp)Format(str string) (result string, ok bool) {
 		return "", false
 	}
 	if ok {
+		/*lastIndex := strings.LastIndex(str, "/")
+		if lastIndex != -1 && lastIndex == len(str) {
+			str = str[:lastIndex - 1]
+		}*/
 		return str, true
 	}
 
